@@ -1,5 +1,11 @@
 # Хроника
 
+- [Скачать шаблон целиком](https://github.com/Vithel2/hronologiyasobituy/archive/refs/heads/main.zip)
+- [Посмотреть демонстрационный MP4](examples/template-demo.mp4)
+- [Скачать демонстрационный MP4](https://raw.githubusercontent.com/Vithel2/hronologiyasobituy/main/examples/template-demo.mp4)
+- [Посмотреть кадр шаблона](examples/template-preview.png)
+
+
 Редактируемый шаблон видеохронологии 1920 × 1080: схема, видеоврезка, события, контекст, стенограмма, шкала и часы. Демонстрационные события вымышлены.
 
 ## Запуск
