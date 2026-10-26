@@ -14,14 +14,14 @@
 
 | Версия | Просмотр на GitHub | Прямая ссылка на MP4 |
 | --- | --- | --- |
-| Короткая, 2 минуты | [Открыть файл](videos/sergiopol-short.mp4) | [Открыть / скачать](https://raw.githubusercontent.com/Vithel2/hronologiyasobituy/main/videos/sergiopol-short.mp4) |
+| Короткая, 2:15 | [Открыть файл](videos/sergiopol-short.mp4) | [Открыть / скачать](https://raw.githubusercontent.com/Vithel2/hronologiyasobituy/main/videos/sergiopol-short.mp4) |
 | Полная, 21:20 | [Открыть файл](videos/sergiopol-full.mp4) | [Открыть / скачать](https://raw.githubusercontent.com/Vithel2/hronologiyasobituy/main/videos/sergiopol-full.mp4) |
 
 На странице файла GitHub нажмите **Download raw file** (стрелка вниз). Если прямая ссылка открыла проигрыватель, сохраните видео через меню проигрывателя или Ctrl+S.
 
 ![Кадр хронологии](videos/sergiopol-preview.png)
 
-Красные метки на шкале: сигнал, два видео и выход 8-го класса. На схеме добавлены лестница и выход. Время приблизительное, начало диктофона — 09:25:11. [Подробности синхронизации](docs/synchronization.md).
+Красные метки на шкале: сигнал, видеозаписи, начало и конец спуска, выход 8-го класса. Схема обновлена по наброску: используемые выходы зелёные, неиспользуемый — жёлтый. Время приблизительное, начало диктофона — 09:25:11. [Подробности синхронизации](docs/synchronization.md).
 
 ## Запуск
 
@@ -57,7 +57,7 @@ ffmpeg -i chronicle.webm -c:v libx264 -crf 20 -pix_fmt yuv420p -movflags +fastst
 Для сборки готового MP4 используются FFmpeg, системный Chromium, Python с Pillow и Playwright. Исходные материалы храните за пределами репозитория. При запущенном сервере редактора:
 
 ```sh
-python3 tools/render_school_video.py --materials /workspace/event-materials --output /workspace/event-render/reference-v2
+python3 tools/render_school_video.py --materials /workspace/event-materials --output /workspace/event-render/reference-v4
 ```
 
 Скрипт создаёт полную и короткую версии, не изменяя исходные записи.
