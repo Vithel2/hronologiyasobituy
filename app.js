@@ -4,11 +4,11 @@ const initial={version:1,title:'ХРОНОЛОГИЯ СОБЫТИЙ',start:'12:0
 let p=structuredClone(initial),t=0,playing=false,last=0,recording=false,imageAsset=null,videoAsset=null,videoURL=null,recorder=null;
 try{const saved=localStorage.getItem('chronicle-project');if(saved)p=validate(JSON.parse(saved));}catch{}
 if(p.accent.toLowerCase()==='#c9ed94')p.accent=initial.accent;
-function validate(o){if(!o||!Array.isArray(o.events)||o.events.length>200)throw Error('Неверный формат проекта');return {version:1,title:String(o.title||'ХРОНОЛОГИЯ').slice(0,70),start:/^\d{2}:\d{2}:\d{2}$/.test(o.start)?o.start:'12:00:00',duration:Math.max(5,Math.min(3600,Number(o.duration)||60)),accent:/^#[0-9a-f]{6}$/i.test(o.accent)?o.accent:'#dedede',note:String(o.note||'').slice(0,350),approximate:!!o.approximate,zeroAt:Math.max(0,Math.min(3600,Number(o.zeroAt)||0)),image:typeof o.image==='string'&&o.image.startsWith('data:image/')?o.image:null,events:o.events.map(e=>({at:Math.max(0,Math.min(3600,Number(e.at)||0)),text:String(e.text||'').slice(0,350),quote:String(e.quote||'').slice(0,250),approx:!!e.approx,quoteDuration:Math.max(0,Math.min(60,Number(e.quoteDuration)||0))}))};}
+function validate(o){if(!o||!Array.isArray(o.events)||o.events.length>200)throw Error('Неверный формат проекта');return {version:1,title:String(o.title||'ХРОНОЛОГИЯ').slice(0,70),start:/^\d{2}:\d{2}:\d{2}$/.test(o.start)?o.start:'12:00:00',duration:Math.max(5,Math.min(3600,Number(o.duration)||60)),accent:/^#[0-9a-f]{6}$/i.test(o.accent)?o.accent:'#dedede',note:String(o.note||'').slice(0,350),approximate:!!o.approximate,startFraction:Math.max(0,Math.min(.999,Number(o.startFraction)||0)),captions:Array.isArray(o.captions)?o.captions.slice(0,200).map(c=>({at:Math.max(0,Number(c.at)||0),until:Math.max(0,Number(c.until)||0),text:String(c.text||'').slice(0,250)})):[],zeroAt:Math.max(0,Math.min(3600,Number(o.zeroAt)||0)),image:typeof o.image==='string'&&o.image.startsWith('data:image/')?o.image:null,events:o.events.map(e=>({at:Math.max(0,Math.min(3600,Number(e.at)||0)),text:String(e.text||'').slice(0,350),quote:String(e.quote||'').slice(0,250),approx:!!e.approx,quoteDuration:Math.max(0,Math.min(60,Number(e.quoteDuration)||0)),label:String(e.label||'').slice(0,40)}))};}
 function persist(){try{localStorage.setItem('chronicle-project',JSON.stringify(p));$('#status').textContent='Проект сохранён в этом браузере';}catch{$('#status').textContent='Скачайте проект для сохранения';}}
 function sorted(){return p.events.toSorted((a,b)=>a.at-b.at)}
 function clock(sec,full=false){sec=Math.floor(sec);const h=Math.floor(sec/3600)%24,m=Math.floor(sec/60)%60,s=sec%60;return(full?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
-function absolute(at){const [h,m,s]=p.start.split(':').map(Number);return clock(h*3600+m*60+s+at,true)}
+function absolute(at){const [h,m,s]=p.start.split(':').map(Number);return clock(h*3600+m*60+s+at+(p.startFraction||0),true)}
 function text(s,x,y,size=24,color='#e6e6e6',font='Arial',weight='normal'){ctx.fillStyle=color;ctx.font=`${weight} ${size}px ${font}`;ctx.fillText(s,x,y)}
 function lines(s,x,y,width,size=24,color='#c6c6c6',max=8){ctx.font=`${size}px Arial`;let count=0;for(const para of s.split('\n')){let line='';for(const word of para.split(' ')){if(ctx.measureText(line+word).width>width&&line){text(line,x,y+count*size*1.35,size,color);count++;line='';if(count>=max)return count;}line+=word+' ';}text(line,x,y+count*size*1.35,size,color);count++;if(count>=max)break;}return count;}
 function line(x,y,x2,y2,color='#3f3f3f',w=2){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke()}
@@ -41,14 +41,14 @@ function draw(){
  let y=80;for(const row of shown){lines(row.label,1372,y,510,25,ink,18);y+=row.h;}
  text('Доп. информация',1372,751,28,muted,'Arial','bold');lines(p.note||'',1372,783,510,23,ink,4);
  text('Стенограмма',27,932,28,muted,'Arial','bold');
- const quoted=active.at(-1);const liveQuote=quoted?.quote&&(!quoted.quoteDuration||t<quoted.at+quoted.quoteDuration)?quoted.quote:'';
+ const quoted=active.at(-1);const liveQuote=p.captions?.find(c=>t>=c.at&&t<c.until)?.text||(quoted?.quote&&(!quoted.quoteDuration||t<quoted.at+quoted.quoteDuration)?quoted.quote:'');
  lines(liveQuote,29,970,670,27,ink,3);
  text('Временная шкала основных событий',733,932,26,muted,'Arial','bold');
  ctx.save();ctx.beginPath();ctx.rect(727,943,626,119);ctx.clip();
  const center=1040,base=1010,scale=6;line(728,base,1352,base,'#bcbcbc',2);
  for(let sec=Math.floor((t-60)/5)*5;sec<t+60;sec+=5){if(sec<0)continue;const x=center+(sec-t)*scale;line(x,base-(sec%10===0?43:22),x,base+(sec%10===0?43:22),'#8b8b8b',2)}
- for(const e of sorted()){const x=center+(e.at-t)*scale;line(x,base-40,x,base+40,e.at<=t?'#eeeeee':'#707070',4)}
- line(center,944,center,1063,'#ffffff',5);ctx.restore();
+ line(center,944,center,1063,'#ffffff',5);
+ sorted().forEach((e,i)=>{const x=center+(e.at-t)*scale,color='#dc3636',label=e.label||e.text.split('.')[0].slice(0,18);line(x,base-32,x,base+32,color,4);ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x-6,base-39);ctx.lineTo(x+6,base-39);ctx.lineTo(x,base-32);ctx.fill();ctx.font='20px Arial';const width=ctx.measureText(label).width;text(label,x-width/2,i%2===0?962:1059,20,color)});ctx.restore();
  text('Время'+(p.approximate?' ≈':''),1372,932,28,muted,'Arial','bold');text(absolute(t),1380,1025,104,'#ffffff','monospace');
  const zero=Number(p.zeroAt)||0,delta=t-zero;const elapsed=clock(Math.abs(delta),true)+(zero?(delta<0?' до сигнала':' с сигнала'):' с начала записи');
  text(elapsed,1390,1054,23,muted,'Arial','bold');
