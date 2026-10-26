@@ -1,10 +1,10 @@
 'use strict';
 const $=s=>document.querySelector(s), canvas=$('#screen'),ctx=canvas.getContext('2d');
-const initial={version:1,title:'ХРОНОЛОГИЯ СОБЫТИЙ',start:'12:00:00',duration:60,accent:'#dedede',note:'Демонстрационный пример. Замените события, схему и подписи своими материалами. Все отметки синхронизированы с временем.',image:null,events:[{at:0,text:'Начало наблюдения. Открыта запись событий.',quote:'Запись началась.'},{at:8,text:'Участник А входит в центральный зал.',quote:'— Встречаемся у центрального входа.'},{at:19,text:'Получено первое сообщение. Уточняется место встречи.',quote:'— Я на месте. Вижу указатель.'},{at:32,text:'Участник Б проходит через западный коридор.',quote:'— Подхожу со стороны коридора.'},{at:45,text:'Участники встречаются в центральном зале.',quote:'— Встреча состоялась.'},{at:56,text:'Наблюдение завершено. Все события зафиксированы.',quote:'Конец записи.'}]};
+const initial={version:1,title:'ХРОНОЛОГИЯ СОБЫТИЙ',start:'12:00:00',duration:60,accent:'#dedede',note:'Хронология событий\nУчебный пример',image:null,events:[{at:0,text:'Начало наблюдения. Открыта запись событий.',quote:'Запись началась.'},{at:8,text:'Участник А входит в центральный зал.',quote:'— Встречаемся у центрального входа.'},{at:19,text:'Получено первое сообщение. Уточняется место встречи.',quote:'— Я на месте. Вижу указатель.'},{at:32,text:'Участник Б проходит через западный коридор.',quote:'— Подхожу со стороны коридора.'},{at:45,text:'Участники встречаются в центральном зале.',quote:'— Встреча состоялась.'},{at:56,text:'Наблюдение завершено. Все события зафиксированы.',quote:'Конец записи.'}]};
 let p=structuredClone(initial),t=0,playing=false,last=0,recording=false,imageAsset=null,videoAsset=null,videoURL=null,recorder=null;
 try{const saved=localStorage.getItem('chronicle-project');if(saved)p=validate(JSON.parse(saved));}catch{}
 if(p.accent.toLowerCase()==='#c9ed94')p.accent=initial.accent;
-function validate(o){if(!o||!Array.isArray(o.events)||o.events.length>200)throw Error('Неверный формат проекта');return {version:1,title:String(o.title||'ХРОНОЛОГИЯ').slice(0,70),start:/^\d{2}:\d{2}:\d{2}$/.test(o.start)?o.start:'12:00:00',duration:Math.max(5,Math.min(3600,Number(o.duration)||60)),accent:/^#[0-9a-f]{6}$/i.test(o.accent)?o.accent:'#dedede',note:String(o.note||'').slice(0,350),image:typeof o.image==='string'&&o.image.startsWith('data:image/')?o.image:null,events:o.events.map(e=>({at:Math.max(0,Math.min(3600,Number(e.at)||0)),text:String(e.text||'').slice(0,350),quote:String(e.quote||'').slice(0,250)}))};}
+function validate(o){if(!o||!Array.isArray(o.events)||o.events.length>200)throw Error('Неверный формат проекта');return {version:1,title:String(o.title||'ХРОНОЛОГИЯ').slice(0,70),start:/^\d{2}:\d{2}:\d{2}$/.test(o.start)?o.start:'12:00:00',duration:Math.max(5,Math.min(3600,Number(o.duration)||60)),accent:/^#[0-9a-f]{6}$/i.test(o.accent)?o.accent:'#dedede',note:String(o.note||'').slice(0,350),approximate:!!o.approximate,zeroAt:Math.max(0,Math.min(3600,Number(o.zeroAt)||0)),image:typeof o.image==='string'&&o.image.startsWith('data:image/')?o.image:null,events:o.events.map(e=>({at:Math.max(0,Math.min(3600,Number(e.at)||0)),text:String(e.text||'').slice(0,350),quote:String(e.quote||'').slice(0,250),approx:!!e.approx,quoteDuration:Math.max(0,Math.min(60,Number(e.quoteDuration)||0))}))};}
 function persist(){try{localStorage.setItem('chronicle-project',JSON.stringify(p));$('#status').textContent='Проект сохранён в этом браузере';}catch{$('#status').textContent='Скачайте проект для сохранения';}}
 function sorted(){return p.events.toSorted((a,b)=>a.at-b.at)}
 function clock(sec,full=false){sec=Math.floor(sec);const h=Math.floor(sec/3600)%24,m=Math.floor(sec/60)%60,s=sec%60;return(full?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
@@ -15,21 +15,45 @@ function line(x,y,x2,y2,color='#3f3f3f',w=2){ctx.strokeStyle=color;ctx.lineWidth
 function box(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
 function dot(x,y,label){ctx.fillStyle=p.accent;ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fill();ctx.strokeStyle=p.accent;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,19+Math.sin(t*3)*3,0,Math.PI*2);ctx.stroke();text(label,x+28,y+7,20,p.accent)}
 function fit(asset,x,y,w,h){const aw=asset.videoWidth||asset.naturalWidth,ah=asset.videoHeight||asset.naturalHeight;if(!aw||!ah)return;const scale=Math.min(w/aw,h/ah);ctx.drawImage(asset,x+(w-aw*scale)/2,y+(h-ah*scale)/2,aw*scale,ah*scale)}
-function draw(){box(0,0,1920,1080,'#090909');box(0,0,1920,100,'#111111');text('Х /',32,60,32,p.accent,'Arial','bold');text(p.title,112,59,28,'#f2f2f2','Arial','bold');text('РЕКОНСТРУКЦИЯ · '+absolute(0),1392,57,18,'#909090');
-const active=sorted().filter(e=>e.at<=t);text('01 / СХЕМА СОБЫТИЙ',36,143,17,'#8d8d8d');text('02 / ХРОНИКА',1392,143,17,'#8d8d8d');
-ctx.save();ctx.beginPath();ctx.rect(26,164,1310,650);ctx.clip();if(imageAsset)fit(imageAsset,38,175,1280,620);else{for(let x=60;x<1320;x+=38)line(x,176,x,805,'#222222',1);for(let y=176;y<805;y+=38)line(40,y,1325,y,'#222222',1);
-box(237,276,839,416,'#272727');ctx.strokeStyle='#a5a5a5';ctx.lineWidth=3;ctx.strokeRect(237,276,839,416);line(237,420,460,420,'#a5a5a5',3);line(460,276,460,550,'#a5a5a5',3);line(460,550,237,550,'#a5a5a5',3);line(820,276,820,420,'#a5a5a5',3);line(820,420,1076,420,'#a5a5a5',3);line(460,594,820,594,'#a5a5a5',3);line(820,594,820,692,'#a5a5a5',3);box(233,586,8,54,'#090909');box(1072,466,8,60,'#090909');text('ЗАЛ A',285,354,23,'#aeaeae');text('ЗАЛ Б',875,354,23,'#aeaeae');text('ЦЕНТРАЛЬНЫЙ ЗАЛ',510,481,25,'#cfcfcf');text('ЗОНА ВСТРЕЧИ',527,525,17,'#8f8f8f');text('ВХОД →',85,621,20,'#b1b1b1');text('ВЫХОД →',1114,504,20,'#b1b1b1');text('ДЕМОНСТРАЦИОННАЯ СХЕМА',70,773,14,'#717171');
-ctx.setLineDash([7,9]);line(241,613,644,505,'#7f7f7f',2);ctx.setLineDash([]);if(t>=8){const k=Math.min(1,(t-8)/37);dot(270+k*350,610-k*100,'А')}if(t>=32){const k=Math.min(1,(t-32)/13);dot(1015-k*340,493+k*17,'Б')}}
-if(videoAsset&&videoAsset.readyState>=2){box(58,181,370,220,'#000000');fit(videoAsset,62,185,362,212);box(62,185,98,27,'#090909');text('ВИДЕО',73,205,16,p.accent)}ctx.restore();
-line(1354,100,1354,1055);line(26,833,1894,833);line(1354,664,1894,664);
-// Display the latest events that fit, keeping full text available in the editor.
-let used=0,shown=[];for(const e of active.toReversed()){ctx.font='23px Arial';let n=0,ln='';for(const w of e.text.split(' ')){if(ctx.measureText(ln+w).width>452&&ln){n++;ln=''}ln+=w+' '}n++;const height=43+n*31;if(used+height>463)break;shown.unshift({e,height});used+=height;}
-let y=187;for(const {e,height} of shown){const newest=e===active.at(-1);text(absolute(e.at),1392,y,20,newest?p.accent:'#7e7e7e','monospace');lines(e.text,1392,y+32,452,23,newest?'#ececec':'#9b9b9b',7);y+=height;}if(!active.length)text('Ожидание начала событий…',1392,207,23,'#7c7c7c');
-text('03 / КОНТЕКСТ',1392,706,17,'#8d8d8d');lines(p.note,1392,746,453,20,'#afafaf',3);
-text('04 / СТЕНОГРАММА',36,875,17,'#8d8d8d');lines(active.at(-1)?.quote||'Ожидание записи…',36,924,565,27,'#d9d9d9',3);line(644,833,644,1055);line(1354,833,1354,1055);text('05 / ВРЕМЕННАЯ ШКАЛА',680,875,17,'#8d8d8d');
-const left=689,right=1310,yy=967;line(left,yy,right,yy,'#5c5c5c',2);for(let i=0;i<=12;i++){const x=left+i*(right-left)/12;line(x,yy-13,x,yy+13,'#5f5f5f',2)}for(const e of sorted()){if(e.at>p.duration)continue;const x=left+e.at/p.duration*(right-left);box(x-3,yy-27,6,54,e.at<=t?p.accent:'#5c5c5c')}const cursor=left+t/p.duration*(right-left);line(cursor,yy-44,cursor,yy+44,'#f4f4f4',3);text(clock(t),left,1031,16,'#909090','monospace');text(clock(p.duration),right-47,1031,16,'#909090','monospace');
-text('06 / ВРЕМЯ',1392,875,17,'#8d8d8d');text(absolute(t),1383,982,83,'#f3f3f3','monospace');text(clock(t,true)+'  С НАЧАЛА СОБЫТИЙ',1392,1032,20,p.accent,'monospace');
-$('#position').textContent=clock(t);$('#seek').value=t;}
+function draw(){
+ box(0,0,1920,1080,'#080808');
+ const border='#808080', ink='#eeeeee', muted='#b0b0b0';
+ ctx.save();ctx.beginPath();ctx.rect(20,20,1332,872);ctx.clip();
+ if(imageAsset)fit(imageAsset,20,20,1332,872);
+ else{
+  ctx.fillStyle='#1c1c1c';ctx.fillRect(180,165,960,610);
+  ctx.strokeStyle='#dedede';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(180,165);ctx.lineTo(870,165);ctx.lineTo(870,390);ctx.lineTo(1140,390);ctx.lineTo(1140,775);ctx.lineTo(290,775);ctx.lineTo(290,350);ctx.lineTo(180,350);ctx.closePath();ctx.stroke();
+  line(470,350,470,775,'#dedede',3);line(675,350,675,615,'#dedede',3);line(290,350,675,350,'#dedede',3);line(290,615,675,615,'#dedede',3);line(870,520,1140,520,'#dedede',3);
+  text('Зал 1',320,395,28,ink);text('Зал 2',510,395,28,ink);text('Выход',200,320,25,ink);text('Центральный зал',740,680,28,ink);
+  if(t>=8)dot(360+Math.min(1,(t-8)/37)*430,570,'А');if(t>=32)dot(1060-Math.min(1,(t-32)/13)*220,600,'Б');
+ }
+ if(videoAsset&&videoAsset.readyState>=2)fit(videoAsset,60,65,300,534);
+ ctx.restore();
+ ctx.strokeStyle=border;ctx.lineWidth=7;ctx.strokeRect(16,16,1888,1048);
+ line(1360,16,1360,1064,border,7);line(16,900,1904,900,border,7);line(1360,718,1904,718,border,7);line(720,900,720,1064,border,7);
+ text('Хронология',1372,47,29,muted,'Arial','bold');
+ const active=sorted().filter(e=>e.at<=t);let shown=[],height=0;
+ for(const e of active.toReversed()){
+  const label=(e.approx?'≈ ':'')+absolute(e.at)+' '+e.text;
+  ctx.font='25px Arial';let n=1,l='';for(const word of label.split(' ')){if(ctx.measureText(l+word).width>510&&l){n++;l=''}l+=word+' '}
+  const h=n*32+10;if(height+h>638)break;shown.unshift({label,h});height+=h;
+ }
+ let y=80;for(const row of shown){lines(row.label,1372,y,510,25,ink,18);y+=row.h;}
+ text('Доп. информация',1372,751,28,muted,'Arial','bold');lines(p.note||'',1372,783,510,23,ink,4);
+ text('Стенограмма',27,932,28,muted,'Arial','bold');
+ const quoted=active.at(-1);const liveQuote=quoted?.quote&&(!quoted.quoteDuration||t<quoted.at+quoted.quoteDuration)?quoted.quote:'';
+ lines(liveQuote,29,970,670,27,ink,3);
+ text('Временная шкала основных событий',733,932,26,muted,'Arial','bold');
+ ctx.save();ctx.beginPath();ctx.rect(727,943,626,119);ctx.clip();
+ const center=1040,base=1010,scale=6;line(728,base,1352,base,'#bcbcbc',2);
+ for(let sec=Math.floor((t-60)/5)*5;sec<t+60;sec+=5){if(sec<0)continue;const x=center+(sec-t)*scale;line(x,base-(sec%10===0?43:22),x,base+(sec%10===0?43:22),'#8b8b8b',2)}
+ for(const e of sorted()){const x=center+(e.at-t)*scale;line(x,base-40,x,base+40,e.at<=t?'#eeeeee':'#707070',4)}
+ line(center,944,center,1063,'#ffffff',5);ctx.restore();
+ text('Время'+(p.approximate?' ≈':''),1372,932,28,muted,'Arial','bold');text(absolute(t),1380,1025,104,'#ffffff','monospace');
+ const zero=Number(p.zeroAt)||0,delta=t-zero;const elapsed=clock(Math.abs(delta),true)+(zero?(delta<0?' до сигнала':' с сигнала'):' с начала записи');
+ text(elapsed,1390,1054,23,muted,'Arial','bold');
+ $('#position').textContent=clock(t);$('#seek').value=t;
+}
 function loadImage(){imageAsset=null;if(p.image){const img=new Image();img.onload=()=>{imageAsset=img;draw()};img.onerror=()=>{$('#message').textContent='Не удалось прочитать изображение.'};img.src=p.image}}
 function renderEvents(){const list=$('#event-list');list.replaceChildren();$('#count').textContent=String(p.events.length).padStart(2,'0');p.events.forEach((e,i)=>{const card=document.createElement('div');card.className='event';card.innerHTML='<div class="event-top"><i class="dot"></i><input type="number" min="0" max="3600" aria-label="Время события"><span>СЕК.</span><button class="delete" title="Удалить событие">×</button></div><textarea maxlength="350" aria-label="Описание события"></textarea><textarea class="quote" maxlength="250" placeholder="Стенограмма / реплика" aria-label="Реплика"></textarea>';const [time,body,quote]=card.querySelectorAll('input,textarea');time.value=e.at;body.value=e.text;quote.value=e.quote;time.oninput=()=>{e.at=Math.max(0,Math.min(3600,+time.value||0));persist();draw()};body.oninput=()=>{e.text=body.value;persist();draw()};quote.oninput=()=>{e.quote=quote.value;persist();draw()};card.querySelector('button').onclick=()=>{p.events.splice(i,1);renderEvents();persist();draw()};list.append(card)})}
 function hydrate(){for(const key of ['title','start','duration','accent','note'])$('#'+key).value=p[key];$('#seek').max=p.duration;$('#length').textContent=clock(p.duration);renderEvents();loadImage();draw()}
